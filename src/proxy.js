@@ -4,7 +4,7 @@ const bodyParser = require('body-parser')
 const request = require('request')
 const _ = require('lodash')
 
-const ALLOWED_METHODS = ['eth_sendBundle', 'eth_sendSlotTxs', 'eth_sendSlotTx', 'eth_sendPrivateTransaction']
+const ALLOWED_METHODS = ['eth_sendBundle', 'eth_sendSlotTxs', 'eth_sendSlotTx', 'eth_sendPrivateTransaction', 'eth_sendBatch']
 
 function help() {
   console.log('node ./miner/proxy.js [PUBLIC_PORT] [GETH_PORT] [GETH_URL]')
@@ -37,7 +37,7 @@ if (!validPort(GETH_PORT)) {
 }
 
 const app = express()
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '5mb' }))
 
 app.use(function (req, res) {
   if (!req.body) {
@@ -55,7 +55,9 @@ app.use(function (req, res) {
     res.end(`invalid method, only ${ALLOWED_METHODS} supported, you provided: ${req.body.method}`)
     return
   }
-
+  if (req.body.method === 'eth_sendBatch') {
+    req.body = req.body.params
+  }
   request
     .post({
       url: `${GETH_URL}:${GETH_PORT}`,
